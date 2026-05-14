@@ -1,21 +1,19 @@
 import { createClient } from '@supabase/supabase-js'
 
-// ─── SUBSTITUI ESTES VALORES DEPOIS DE CRIAR O PROJETO NO SUPABASE ───
-const SUPABASE_URL = process.env.REACT_APP_SUPABASE_URL || 'https://SEU-PROJETO.supabase.co'
-const SUPABASE_ANON_KEY = process.env.REACT_APP_SUPABASE_ANON_KEY || 'SUA-CHAVE-AQUI'
+const SUPABASE_URL = process.env.REACT_APP_SUPABASE_URL || 'https://sqgbjsibuchuabxfnede.supabase.co'
+const SUPABASE_ANON_KEY = process.env.REACT_APP_SUPABASE_ANON_KEY || ''
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+// Garante que a URL não tem /rest/v1 no fim
+const cleanUrl = SUPABASE_URL.replace(/\/rest\/v1\/?$/, '').replace(/\/$/, '')
+
+export const supabase = createClient(cleanUrl, SUPABASE_ANON_KEY)
 
 // ─── POSTOS ───────────────────────────────────────────────────────────
-export async function getPostosProximos(lat, lng, raioKm = 20) {
+export async function getPostosProximos() {
   const { data, error } = await supabase
     .from('postos')
-    .select(`
-      *,
-      reportes (
-        ar, agua, nota, created_at
-      )
-    `)
+    .select('*, reportes(ar, agua, nota, created_at)')
+    .eq('ativo', true)
     .order('nome')
 
   if (error) throw error
@@ -25,7 +23,7 @@ export async function getPostosProximos(lat, lng, raioKm = 20) {
 export async function getPostoPorId(id) {
   const { data, error } = await supabase
     .from('postos')
-    .select(`*, reportes(ar, agua, nota, created_at)`)
+    .select('*, reportes(ar, agua, nota, created_at)')
     .eq('id', id)
     .single()
 
@@ -54,19 +52,5 @@ export async function getReportesRecentes(posto_id, limite = 5) {
     .limit(limite)
 
   if (error) throw error
-  return data
-}
-
-// ─── ESTADO ATUAL (reporte mais recente de cada posto) ────────────────
-export async function getEstadoAtual(posto_id) {
-  const { data, error } = await supabase
-    .from('reportes')
-    .select('ar, agua, created_at')
-    .eq('posto_id', posto_id)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .single()
-
-  if (error) return null
   return data
 }
